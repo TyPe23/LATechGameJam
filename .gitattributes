@@ -19,6 +19,8 @@
 
 
 ## git-lfs ##
+*.dylib filter=lfs diff=lfs merge=lfs -text
+
 
 #Image
 *.jpg filter=lfs diff=lfs merge=lfs -text

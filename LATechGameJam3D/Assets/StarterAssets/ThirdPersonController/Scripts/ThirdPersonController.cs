@@ -32,16 +32,12 @@ namespace StarterAssets
         public AudioClip[] FootstepAudioClips;
         [Range(0, 1)] public float FootstepAudioVolume = 0.5f;
 
-        [Space(10)]
-        [Tooltip("The height the player can jump")]
-        public float JumpHeight = 1.2f;
-
         [Tooltip("The character uses its own gravity value. The engine default is -9.81f")]
         public float Gravity = -15.0f;
 
         [Space(10)]
         [Tooltip("Time required to pass before being able to jump again. Set to 0f to instantly jump again")]
-        public float JumpTimeout = 0.50f;
+        public float DashTimeout = 0.50f;
 
         [Tooltip("Time required to pass before entering the fall state. Useful for walking down stairs")]
         public float FallTimeout = 0.15f;
@@ -80,15 +76,17 @@ namespace StarterAssets
         private float _cinemachineTargetPitch;
 
         // player
-        private float _speed;
+        public float _speed;
         private float _animationBlend;
         private float _targetRotation = 0.0f;
         private float _rotationVelocity;
-        private float _verticalVelocity;
+        private float _dashVelocity;
         private float _terminalVelocity = 53.0f;
+        private Vector3 targetDirection;
+        public bool _dash;
 
         // timeout deltatime
-        private float _jumpTimeoutDelta;
+        private float _dashTimeoutDelta;
         private float _fallTimeoutDelta;
 
         // animation IDs
@@ -148,7 +146,7 @@ namespace StarterAssets
             AssignAnimationIDs();
 
             // reset our timeouts on start
-            _jumpTimeoutDelta = JumpTimeout;
+            _dashTimeoutDelta = DashTimeout;
             _fallTimeoutDelta = FallTimeout;
         }
 
@@ -156,7 +154,7 @@ namespace StarterAssets
         {
             _hasAnimator = TryGetComponent(out _animator);
 
-            JumpAndGravity();
+            Ability();
             GroundedCheck();
             Move();
         }
@@ -265,11 +263,10 @@ namespace StarterAssets
             }
 
 
-            Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
+            targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
             // move the player
-            _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
-                             new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            _controller.Move(targetDirection.normalized * ((_speed) * Time.deltaTime) );
 
             // update animator if using character
             if (_hasAnimator)
@@ -279,72 +276,39 @@ namespace StarterAssets
             }
         }
 
-        private void JumpAndGravity()
+        private void Ability()
         {
             if (Grounded)
             {
-                // reset the fall timeout timer
-                _fallTimeoutDelta = FallTimeout;
-
-                // update animator if using character
-                if (_hasAnimator)
-                {
-                    _animator.SetBool(_animIDJump, false);
-                    _animator.SetBool(_animIDFreeFall, false);
-                }
-
-                // stop our velocity dropping infinitely when grounded
-                if (_verticalVelocity < 0.0f)
-                {
-                    _verticalVelocity = -2f;
-                }
-
-                // Jump
-                if (_input.jump && _jumpTimeoutDelta <= 0.0f)
-                {
-                    // the square root of H * -2 * G = how much velocity needed to reach desired height
-                    _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-
-                    // update animator if using character
-                    if (_hasAnimator)
-                    {
-                        _animator.SetBool(_animIDJump, true);
-                    }
-                }
-
-                // jump timeout
-                if (_jumpTimeoutDelta >= 0.0f)
-                {
-                    _jumpTimeoutDelta -= Time.deltaTime;
-                }
-            }
-            else
-            {
-                // reset the jump timeout timer
-                _jumpTimeoutDelta = JumpTimeout;
-
-                // fall timeout
-                if (_fallTimeoutDelta >= 0.0f)
-                {
-                    _fallTimeoutDelta -= Time.deltaTime;
-                }
-                else
+                if (_dash)
                 {
                     // update animator if using character
                     if (_hasAnimator)
                     {
-                        _animator.SetBool(_animIDFreeFall, true);
+                        _animator.SetBool(_animIDJump, false);
+                        _animator.SetBool(_animIDFreeFall, false);
+                    }
+
+                    // dash
+                    if (_input.ability && _dashTimeoutDelta <= 0.0f)
+                    {
+                        _controller.Move(targetDirection.normalized / 5);
+
+                        // update animator if using character
+                        if (_hasAnimator)
+                        {
+                            _animator.SetBool(_animIDJump, true);
+                        }
+                        _dashTimeoutDelta = DashTimeout;
+                    }
+
+                    // dash timeout
+                    if (_dashTimeoutDelta >= 0.0f)
+                    {
+                        _dashTimeoutDelta -= Time.deltaTime;
                     }
                 }
-
-                // if we are not grounded, do not jump
-                _input.jump = false;
-            }
-
-            // apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
-            if (_verticalVelocity < _terminalVelocity)
-            {
-                _verticalVelocity += Gravity * Time.deltaTime;
+                _input.ability = false;
             }
         }
 

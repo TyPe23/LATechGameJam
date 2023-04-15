@@ -10,7 +10,7 @@ namespace StarterAssets
 		[Header("Character Input Values")]
 		public Vector2 move;
 		public Vector2 look;
-		public bool jump;
+		public bool ability;
 		public bool sprint;
 
 		[Header("Movement Settings")]
@@ -34,14 +34,14 @@ namespace StarterAssets
 			}
 		}
 
-		public void OnJump(InputValue value)
+		public void OnAbility(InputValue value)
 		{
-			JumpInput(value.isPressed);
+			AbilityInput(value.isPressed);
 		}
 
 		public void OnSprint(InputValue value)
 		{
-			SprintInput(value.isPressed);
+			SprintInput(true);
 		}
 #endif
 
@@ -56,9 +56,9 @@ namespace StarterAssets
 			look = newLookDirection;
 		}
 
-		public void JumpInput(bool newJumpState)
+		public void AbilityInput(bool newJumpState)
 		{
-			jump = newJumpState;
+			ability = newJumpState;
 		}
 
 		public void SprintInput(bool newSprintState)
@@ -76,5 +76,4 @@ namespace StarterAssets
 			Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
 		}
 	}
-	
 }
